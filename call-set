@@ -15,10 +15,11 @@ import sys
 import cookielib
 
 base_url = 'https://ipt.uc.alibaba-inc.com:8443'
-
+verbose = False
 
 def debug(s):
-    print >>sys.stderr, s
+    if verbose:
+        print >>sys.stderr, s
 
 
 def try_login():
@@ -70,6 +71,16 @@ def start_line_setting(br):
     return br
 
 
+def print_call_forwarding():
+    br = try_login()
+    br = start_line_setting(br)
+
+    br.select_form('linesettingsForm')
+    if br.find_control('cfucheck').items[0].selected:
+        print 'current calls are forwarding to %s' % br['cfadestination']
+    else:
+        print 'call forwarding is currently disabled'
+
 def set_call_forwarding(number):
     br = try_login()
     br = start_line_setting(br)
@@ -99,7 +110,9 @@ mandatory options:
 
     -h                      help message
     -f|--forward NUMBER     forward call to NUMBER. use -f DISABLE to disable
-                            call forwarding.
+                            call forwarding. use -f SHOW to get current setting.
+
+    -v|--verbose            display debug messages
 
 please send bugs/patches to jianingy.yang AT gmail DOT com
 """
@@ -110,13 +123,17 @@ def run():
     import getopt
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hf:', ['help', 'forward='])
+        opts, args = getopt.getopt(sys.argv[1:], 'hf:v',
+                                   ['help', 'forward=', 'verbose'])
     except getopt.GetoptError as e:
         print (e)
         usage()
         sys.exit(2)
 
     for o, a in opts:
+        if o in ('-v', '--verbose'):
+            verbose = True
+
         if o == '-h':
             usage()
             sys.exit(0)
@@ -124,10 +141,11 @@ def run():
             number = a
             if number.lower() == 'disable':
                 disable_call_forwarding()
-                sys.exit(0)
+            elif number.lower() == 'show':
+                print_call_forwarding()
             else:
                 set_call_forwarding(number)
-                sys.exit(0)
+            sys.exit(0)
 
 
 if __name__ == '__main__':
